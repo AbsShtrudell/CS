@@ -50,8 +50,6 @@ int main()
 		return 0;
 	}
 
-	cout << "SUCCESS: Server created\n";
-
 	part a = { "factory1\0", 10.2, "01.12.2021" };
 	part b = { "factory1\0", 10.8, "01.09.2021" };
 	part c = { "factory2\0", 5.8, "07.09.2020" };
@@ -61,7 +59,7 @@ int main()
 	part u = { "factory5\0", 50, "01.09.1939" };
 
 	FILE* f;
-	f = fopen("data.txt","w");
+	f = fopen("data.txt", "w");
 	fwrite(&a, sizeof(part), 1, f);
 	fwrite(&b, sizeof(part), 1, f);
 	fwrite(&c, sizeof(part), 1, f);
@@ -70,6 +68,8 @@ int main()
 	fwrite(&t, sizeof(part), 1, f);
 	fwrite(&u, sizeof(part), 1, f);
 	fclose(f);
+
+	cout << "SUCCESS: Server created\n";
 
 	listen(listening, SOMAXCONN);
 
@@ -91,6 +91,7 @@ DWORD WINAPI ThreadFunc(LPVOID client)
 	cout << "NEW CLIENT CONNECTED\n";
 
 	char buf[1000];
+	bool result = false;
 	ZeroMemory(buf, 1000);
 
 	FILE* f;
@@ -98,18 +99,22 @@ DWORD WINAPI ThreadFunc(LPVOID client)
 
 	while (recv(s, buf, sizeof(buf), 0) != 0)
 	{
+		result = false;
 		while (fread(&q, sizeof(part), 1, f))
 		{
 			if (!strcmp(q.date.c_str(), buf))
 			{
-				strcpy(buf, q.factory.c_str());
+				strcpy(buf, (q.factory+" ").c_str());
 				string d = to_string(q.price);
 				strcat(buf, d.c_str());
 				buf[q.factory.length() + d.length()] = '\0';
 				send(s,buf, sizeof(buf), 0);
 				ZeroMemory(buf, 1000);
+				result = true;
 			}
 		}
+		if (!result)
+			send(s, "Vrong value", sizeof("Vrong value"), 0);
 	}
 	fclose(f);
 	closesocket(s);
